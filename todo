@@ -1,0 +1,39 @@
+Question: when solving parens in math, do parens get solved in left to right order? or do deeper nested parens get solved first?
+	1 for nested first
+It's not going to work that way. an arbitrarily length paren can be passed that isn't 2 or 3 middle characters.
+
+eg
+T&(!T|F&!F)
+F|(!(F&F)|F)=T
+F|((!(F&F)|F)=T)
+!((F=!T)&((F|T)&F))
+
+so:
+find first instance of right paren
+find paired left paren
+pass inner equation to a 'solve'
+	will just be the 'left to right' solve
+remove left and right paren
+loop till no more rparen
+if 'left paren exists'
+	error invalid format
+if length > 1
+	if Operand.exists
+		continue solve looping
+	else
+		error invalid format
+'finish wrapping the answer' return.
+when done. everything should be solved.
+
+
+for solving deepest parens first
+do a 1 pass over and generate a depth for the parens
+    store a 'current depth'
+    iterate over string
+        if left paren
+            store paren and current depth meta data //It's important that the addition is done second
+            depth++
+        if right paren
+            depth--
+            store paren and current depth meta data //It's important that the subtraction is done first
+    done
