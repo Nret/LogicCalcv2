@@ -42,7 +42,7 @@ public class TruthTableListAdapter extends ArrayAdapter<Equation.Solution> {
         }
 
         String answer = "False";
-        if (solutions[position].answer.equals(Equation.Constant.TRUE))
+        if (solutions[position].answer.equals(String.valueOf(Equation.Constant.TRUE)))
             answer = "True";
 
         ViewHolder holder = (ViewHolder) rowView.getTag();

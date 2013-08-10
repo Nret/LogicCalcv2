@@ -1,8 +1,8 @@
 package com.logiccalcv2;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.widget.ListView;
+import android.app.*;
+import android.os.*;
+import android.widget.*;
 
 /**
  * Created by ProfUtonium on 6/11/13.
@@ -24,15 +24,20 @@ public class TestingListActivity extends Activity {
 
     private void getSolutions() {
         try {
-            solutions = new Equation.Solution[3];
+            solutions = new Equation.Solution[1];
             solutions[0] = new Equation("(T|F)&T").solve();
-            solutions[1] = new Equation("T&(!T|F)&!F").solve();
-            solutions[2] = new Equation("F=(F=!T)").solve();
+            //solutions[1] = new Equation("T&(!T|F)&!F").solve();
+            //solutions[2] = new Equation("F=(F=!T)").solve();
             //solutions[3] = new Equation("!T(F&F)").solve();//Bad equation
             //solutions[4] = new Equation("!TF&F").solve();//Bad equation
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+			
+			new AlertDialog.Builder(this)
+			.setTitle("Error")
+			.setMessage(e.getMessage())
+			.setNeutralButton("Close", null).show();
         }
     }
 }
