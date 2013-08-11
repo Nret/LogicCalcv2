@@ -1,17 +1,14 @@
 package com.logiccalcv2;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.TextAppearanceSpan;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -65,11 +62,11 @@ public class Equation {
 
         int indexR;
         while((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
-            int indexL = equationWorking.lastIndexOf(String.valueOf(Operand.RPAREN));
+            int indexL = equationWorking.lastIndexOf(String.valueOf(Operand.LPAREN), indexR);
             if (indexL == -1)
                 throw new Exception("Invalid equation: Solved to " +
                         solution.steps.get(solution.steps.size() - 1).equationToString());
-			char ans = leftToRightSolve(equationWorking.toString());
+			char ans = leftToRightSolve(equationWorking.substring(indexL + 1, indexR));//+1 because it's inclusive
 			equationWorking.delete(indexL, indexR + 1);//+1 because it's exclusive
 			equationWorking.insert(indexL, ans);//todo make sure this actually inserts to same place the ( was
 		}
@@ -88,28 +85,28 @@ public class Equation {
             char op = equationWorking.charAt(pos);
 
             if (Operand.isPrefixOperand(op)) {
-                if (checkPrefixEqaution(equationWorking.substring(pos, pos + 1))) {
+                if (checkPrefixEquation(equationWorking.substring(pos, pos + 2))) {
                     solution.steps.add(new Step(equationWorking, pos,
                             pos + 1));
 
-                    char ans = solvePrefix(equationWorking.substring(pos, pos + 1));
-					
+                    char ans = solvePrefix(equationWorking.substring(pos, pos + 2));
+
 					equationWorking.setCharAt(pos, ans);
 					equationWorking.deleteCharAt(pos + 1);
-					
+
                     pos = 0; // reset i to begin looking at the start again
                     continue;
                 }
             } else if (Operand.isInfixOperand(op)) {
-                if (checkInfixEquation(equationWorking.substring(pos - 1, pos + 1))) {
+                if (checkInfixEquation(equationWorking.substring(pos - 1, pos + 2))) {
                     solution.steps.add(new Step(equationWorking,
                             pos - 1, pos + 1));
 
-                    char ans = solveInfix(equationWorking.substring(pos - 1, pos + 1));
+                    char ans = solveInfix(equationWorking.substring(pos - 1, pos + 2));
 
 					equationWorking.setCharAt(pos - 1, ans);
-					equationWorking.delete(pos, pos + 2); //+2 because it's exclusive 
-					
+					equationWorking.delete(pos, pos + 2); //+2 because it's exclusive
+
                     pos = 0; // reset i to begin looking at the start again
                     continue;
                 }
@@ -153,7 +150,7 @@ public class Equation {
      * after loc are constants. Other wise it's not ready to be solved. Or there
      * is a invalid equation error
      *
-     * @param loc
+     * @param equation to be checked
      * @return
      */
     protected boolean checkInfixEquation(String equation) throws Exception {
@@ -174,11 +171,11 @@ public class Equation {
      * will cause an unsolvable error, as such "T!F -> TT -> unsolvable". But
      * you could have "T&!F -> T&T -> T" or "!(T&F)"
      *
-     * @param loc
+     * @param equation to be checked
      * @return
      */
-    protected boolean checkPrefixEqaution(String equation) throws Exception {
-		if (equation.length() != 3)
+    protected boolean checkPrefixEquation(String equation) throws Exception {
+		if (equation.length() != 2)
 			throw new Exception("Invalid equation length.");
 			
         if (Operand.isOperand(equation.charAt(0))//operand
