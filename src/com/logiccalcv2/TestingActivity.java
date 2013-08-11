@@ -1,19 +1,12 @@
 package com.logiccalcv2;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-
-import com.logiccalcv2.Equation.Constant;
-import com.logiccalcv2.Equation.Operand;
-import com.logiccalcv2.Equation.Solution;
-import com.logiccalcv2.Equation.Step;
+import android.app.*;
+import android.content.*;
+import android.os.*;
+import android.util.*;
+import android.view.*;
+import android.widget.*;
+import com.logiccalcv2.Equation.*;
 
 public class TestingActivity extends Activity {
     private TextView inputText;
@@ -36,6 +29,11 @@ public class TestingActivity extends Activity {
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+			
+			new AlertDialog.Builder(this)
+				.setTitle("Error")
+				.setMessage(e.getMessage())
+				.setNeutralButton("Close", null).show();
         }
     }
 
@@ -168,6 +166,11 @@ public class TestingActivity extends Activity {
 //		String text = inputText.getText().toString() + cs.toString();
 //		inputText.setText(text);
     }
+	
+	private void inputTextAdd(char ch) {
+		inputText.append(String.valueOf(ch));
+		
+	}
 
     public void changeUI() {
         if (ver) {

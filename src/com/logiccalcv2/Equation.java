@@ -1,17 +1,14 @@
 package com.logiccalcv2;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.TextAppearanceSpan;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -19,9 +16,6 @@ import java.util.List;
  */
 public class Equation {
     protected String equationOriginal;
-    protected StringBuilder equationWorking;// Do the char array operations make it
-    // faster than if I was using
-    // strings?
     protected Solution solution;
 
     /**
@@ -38,7 +32,7 @@ public class Equation {
      * NOTE: Don't forget to set the equation with setEquation() before calling solve() when using this constructor.
      */
     Equation() {
-        this.equationOriginal = null;
+        this.equationOriginal = null; //todo what happens when it's null? i need to put in a null check
         this.solution = new Solution();
     }
 
@@ -61,169 +55,94 @@ public class Equation {
         return this.solution;
     }
 
-    public Solution Brokesolve() throws Exception {
-        solution.steps.clear();
-        solution.equation = equationOriginal;
-        equationWorking = new StringBuilder(equationOriginal);
-
-        int indexR;
-        while((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
-            int indexL = LParenIndex(indexR);
-            if (indexL == -1)
-                throw new Exception("Invalid equation: Solved to " +
-                        solution.steps.get(solution.steps.size() - 1).equationToString());
-
-        }
-
-        solution.answer = equationWorking.toString();
-        return solution;
-    }
-
-    /**
-     * Needed because ArrayList does not have a lastIndexOf that allows for a beginning offset.
-     * Searches equationWorking backwards starting at offset for Constant.LPAREN
-     * @return -1 if not found.
-     */
-    protected int LParenIndex(int offset) {
-        for (int i = offset; i > 0; i--)
-            if (equationWorking.get(i).equals(Operand.LPAREN))
-                return i;
-        return -1;
-    }
-
-    protected void leftToRightSolve(int start, int stop) throws Exception {
-        int pos = start;
-        while (pos < stop) {
-            String op = equationWorking.get(pos);
-
-            if (Operand.isPrefixOperand(op)) {
-                if (checkPrefixOperand(pos)) {
-                    solution.steps.add(new Step(equationWorking, pos,
-                            pos + 1));
-
-                    solvePrefix(pos);
-
-                    pos = 0; // reset i to begin looking at the start again
-                    continue;
-                }
-            } else if (Operand.isInfixOperand(op)) {
-                if (checkInfixOperand(pos)) {
-                    solution.steps.add(new Step(equationWorking,
-                            pos - 1, pos + 1));
-
-                    solveInfix(pos);
-
-                    pos = 0; // reset i to begin looking at the start again
-                    continue;
-                }
-            }
-            pos++;
-            // else if not constants, must be an invalid character, throw
-            // invalid equation
-        }
-
-        if (equationWorking.size() != 1) {
-            throw new Exception("Invalid equation: Solved to " +
-                    solution.steps.get(solution.steps.size() - 1).equationToString());
-        }
-    }
-
     public Solution solve() throws Exception {
         solution.steps.clear();
         solution.equation = equationOriginal;
-        equationWorking = new ArrayList<String>(Arrays.asList(equationOriginal.split("")));
-        // Create a List from the input, so the List can be resized, positions
-        // deleted, positions inserted.
+        StringBuilder equationWorking = new StringBuilder(equationOriginal);
 
-        //i'am not sure why, but the first position using this method is always nothing. do I'm deleting it here.
-        equationWorking.remove(0);
+        int indexR;
+        while((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
+            int indexL = equationWorking.lastIndexOf(String.valueOf(Operand.LPAREN), indexR);
+            if (indexL == -1)
+                throw new Exception("Invalid equation: Solved to " +
+                        solution.steps.get(solution.steps.size() - 1).equationToString());
+			char ans = leftToRightSolve(equationWorking.substring(indexL + 1, indexR));//+1 because it's inclusive
+			equationWorking.delete(indexL, indexR + 1);//+1 because it's exclusive
+			equationWorking.insert(indexL, ans);//todo make sure this actually inserts to same place the ( was
+		}
+		
+		//A final solve because there's no more parens to start from, or get in the way of anything
+		char answer = leftToRightSolve(equationWorking.toString());
+		
+        solution.answer = String.valueOf(answer);
+        return solution;
+    }
 
-        int pos = 0;
-        while (pos < equationWorking.size()) {
-            String op = equationWorking.get(pos);
+    protected char leftToRightSolve(String equation) throws Exception {
+        StringBuilder equationWorking = new StringBuilder(equation);
+		int pos = 0;
+        while (pos < equationWorking.length()) {
+            char op = equationWorking.charAt(pos);
 
             if (Operand.isPrefixOperand(op)) {
-                if (checkPrefixOperand(pos)) {
+                if (checkPrefixEquation(equationWorking.substring(pos, pos + 2))) {
                     solution.steps.add(new Step(equationWorking, pos,
                             pos + 1));
 
-                    solvePrefix(pos);
+                    char ans = solvePrefix(equationWorking.substring(pos, pos + 2));
+
+					equationWorking.setCharAt(pos, ans);
+					equationWorking.deleteCharAt(pos + 1);
 
                     pos = 0; // reset i to begin looking at the start again
                     continue;
                 }
             } else if (Operand.isInfixOperand(op)) {
-                if (checkInfixOperand(pos)) {
+                if (checkInfixEquation(equationWorking.substring(pos - 1, pos + 2))) {
                     solution.steps.add(new Step(equationWorking,
                             pos - 1, pos + 1));
 
-                    solveInfix(pos);
+                    char ans = solveInfix(equationWorking.substring(pos - 1, pos + 2));
 
-                    pos = 0; // reset i to begin looking at the start again
-                    continue;
-                }
-            } else if (Operand.isRparen(op)) {
-                //Removes parens when needed
-                //Right Paren checks
-                if (pos < 2)
-                    throw new Exception("Bad Equation");
-
-                if (Constant.isConstant(equationWorking.get(pos - 1))
-                        && Operand.isLparen(equationWorking.get(pos - 2))) {
-                    //everything checks out, remove stuff as needed.
-                    solution.steps.add(new Step(equationWorking,
-                            pos - 2, pos));
-
-                    equationWorking.remove(pos);
-                    equationWorking.remove(pos - 2);
+					equationWorking.setCharAt(pos - 1, ans);
+					equationWorking.delete(pos, pos + 2); //+2 because it's exclusive
 
                     pos = 0; // reset i to begin looking at the start again
                     continue;
                 }
             }
             pos++;
-            // else if not constants, must be an invalid character, throw
-            // invalid equation
         }
 
-        if (equationWorking.size() != 1) {
+        if (equationWorking.length() != 1) {
             throw new Exception("Invalid equation: Solved to " +
                     solution.steps.get(solution.steps.size() - 1).equationToString());
         }
-
-        solution.answer = equationWorking.get(0);//0 should contain the answer at this point.
-        return solution;
+		
+		return equationWorking.charAt(0);
     }
 
-    protected void solvePrefix(int loc) throws Exception {
-        String op = equationWorking.get(loc);
+    protected char solvePrefix(String equation) throws Exception {
+		char op = equation.charAt(0);
         // Get the right hand side of the equation to solve.
-        String rhs = equationWorking.get(loc + 1);
+        char rhs = equation.charAt(1);
         boolean rhsBool = Constant.convert(rhs);
 
-        String ans = Constant.convert(Operand.solvePreFix(op, rhsBool));
+        char ans = Constant.convert(Operand.solvePreFix(op, rhsBool));
 
-        // Set the answer to the location of the operand.
-        equationWorking.set(loc, ans);
-        // Delete the location after the operand, as it contains the constant
-        // that was solved using.
-        equationWorking.remove(loc + 1);
+        return ans;
     }
 
-    protected void solveInfix(int loc) throws Exception {
-        String op = equationWorking.get(loc);
-        String lhs = equationWorking.get(loc - 1);
+    protected char solveInfix(String equation) throws Exception {
+        char op = equation.charAt(1);
+        char lhs = equation.charAt(0);
         boolean lhsBool = Constant.convert(lhs);
-        String rhs = equationWorking.get(loc + 1);
+        char rhs = equation.charAt(2);
         boolean rhsBool = Constant.convert(rhs);
 
-        String ans = Constant.convert(Operand.solveInFix(lhsBool, op, rhsBool));
-
-        equationWorking.set(loc, ans);
-        // Remove the rhs first. Because other wise the removal of lhs first
-        // would move the rhs and the Operand.
-        equationWorking.remove(loc + 1);
-        equationWorking.remove(loc - 1);
+        char ans = Constant.convert(Operand.solveInFix(lhsBool, op, rhsBool));
+		
+		return ans;
     }
 
     /**
@@ -231,15 +150,17 @@ public class Equation {
      * after loc are constants. Other wise it's not ready to be solved. Or there
      * is a invalid equation error
      *
-     * @param loc
+     * @param equation to be checked
      * @return
      */
-    protected boolean checkInfixOperand(int loc) {
-        // If the 'argument' before and after are constant's, then it's ready to
-        // be solved.
-        if (Constant.isConstant(equationWorking.get(loc + 1))
-                && Constant.isConstant(equationWorking.get(loc - 1)))
-            return true;
+    protected boolean checkInfixEquation(String equation) throws Exception {
+		if (equation.length() != 3)
+			throw new Exception("Invalid equation length.");
+			
+        if (Constant.isConstant(equation.charAt(0))//first argument
+			&& Operand.isOperand(equation.charAt(1))//operand
+			&& Constant.isConstant(equation.charAt(2)))//second argument
+        	return true;
 
         return false;
     }
@@ -250,17 +171,17 @@ public class Equation {
      * will cause an unsolvable error, as such "T!F -> TT -> unsolvable". But
      * you could have "T&!F -> T&T -> T" or "!(T&F)"
      *
-     * @param loc
+     * @param equation to be checked
      * @return
      */
-    protected boolean checkPrefixOperand(int loc) {
-        // Operand.isOperand(equationWorking.get(loc - 1)) would let you know if
-        // it's an invalid equation.
-
-        // If 'argument' is a Constant, then it should be solved. Other wise
-        // it's not ready to be solved. Or it's an invalid equation
-        if (Constant.isConstant(equationWorking.get(loc + 1)))
-            return true;
+    protected boolean checkPrefixEquation(String equation) throws Exception {
+		if (equation.length() != 2)
+			throw new Exception("Invalid equation length.");
+			
+        if (Operand.isOperand(equation.charAt(0))//operand
+			&& Constant.isConstant(equation.charAt(1)))//argument
+        	return true;
+			
         return false;
     }
 
@@ -271,13 +192,13 @@ public class Equation {
      * @author ProfUtonium
      */
     public static class Constant {
-        final static public String TRUE = "T";
-        final static public String FALSE = "F";
+        final static public char TRUE = 'T';
+        final static public char FALSE = 'F';
         /**
          * If more Constants support is added, don't forget to upgrade this
          * string array.
          */
-        final static public String[] CONSTS = {TRUE, FALSE};
+        final static public char[] CONSTS = {TRUE, FALSE};
 
         /**
          * Converts a boolean it's Constant equivalent.
@@ -285,7 +206,7 @@ public class Equation {
          * @param bool value to be converted.
          * @return Constant.TRUE or Constant.FALSE;
          */
-        final static public String convert(boolean bool) {
+        final static public char convert(boolean bool) {
             return bool ? TRUE : FALSE;
         }
 
@@ -295,13 +216,13 @@ public class Equation {
          * @param str
          * @return true or false.
          */
-        final static public boolean convert(String str) {
-            return (str.equals(Constant.TRUE));
+        final static public boolean convert(char str) {
+            return str == Constant.TRUE;
         }
 
-        final static public boolean isConstant(String con) {
-            for (String cons : CONSTS)
-                if (con.equals(cons))
+        final static public boolean isConstant(char con) {
+            for (char cons : CONSTS)
+                if (cons == con)
                     return true;
             return false;
         }
@@ -461,7 +382,7 @@ public class Equation {
     public class Step {
         public StringBuilder equation;
         public int startSolvingLoc;
-        public int endSolvingLoc;
+        public int endSolvingLoc; //inclusive
 
         Step(StringBuilder equation, int startSolvingLoc, int endSolvingLoc) {
             //this.equation = (List<String>) ((ArrayList<String>) equation).clone();//Other wise there needs to be a deep copy of equation.

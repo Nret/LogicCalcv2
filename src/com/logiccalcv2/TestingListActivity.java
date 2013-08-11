@@ -1,8 +1,8 @@
 package com.logiccalcv2;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.widget.ListView;
+import android.app.*;
+import android.os.*;
+import android.widget.*;
 
 /**
  * Created by ProfUtonium on 6/11/13.
@@ -33,6 +33,11 @@ public class TestingListActivity extends Activity {
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+
+			new AlertDialog.Builder(this)
+			.setTitle("Error")
+			.setMessage(e.getMessage())
+			.setNeutralButton("Close", null).show();
         }
     }
 }
