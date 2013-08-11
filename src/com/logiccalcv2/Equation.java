@@ -1,4 +1,3 @@
-//ok done testing
 package com.logiccalcv2;
 
 import android.content.Context;
