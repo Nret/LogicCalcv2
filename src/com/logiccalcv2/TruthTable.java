@@ -77,7 +77,7 @@ public class TruthTable {
 			String newEquation = new String(equation);
 			for (int j = 0; j < variables.size(); j++) {
 				newEquation = newEquation.replace(variables.get(i),
-						Constant.convert(binaryValues[i]));
+						String.valueOf(Constant.convert(binaryValues[i])));
 			}
 
 			Equation equationObject = new Equation(newEquation);
@@ -104,7 +104,7 @@ public class TruthTable {
 			// string. when the String.replace happens on the equation if the
 			// Constants aren't the first operation it might over right already
 			// replaced strings. Or you can just not allow them.
-			if (!(Operand.isOperand(var) || Constant.isConstant(var))) {
+			if (!(Operand.isOperand(var.charAt(0)) || Constant.isConstant(var.charAt(0)))) {
 				// It's not a constant or operand so let's remember it.
 				variables.add(var);
 			}
