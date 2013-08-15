@@ -1,6 +1,7 @@
 package com.logiccalcv2;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,9 +42,17 @@ public class TruthTableListAdapter extends ArrayAdapter<Equation.Solution> {
             rowView.setTag(viewHolder);
         }
 
-        String answer = "False";
-        if (solutions[position].answer.equals(String.valueOf(Equation.Constant.TRUE)))
-            answer = "True";
+        String answer = "Err: No Answer";
+        try {
+            answer = Equation.Constant.convert(solutions[position].answer) ? "True" : "False";
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            new AlertDialog.Builder(context)
+                    .setTitle("Error")
+                    .setMessage(e.getMessage())
+                    .setNeutralButton("Close", null).show();
+        }
 
         ViewHolder holder = (ViewHolder) rowView.getTag();
         holder.answer.setText(answer);//("Answer");

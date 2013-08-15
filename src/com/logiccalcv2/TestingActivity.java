@@ -27,7 +27,6 @@ public class TestingActivity extends Activity {
             sol = equ.setEquation("!T(F&F)").solve();
             logAnswers(sol);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
 			
 			new AlertDialog.Builder(this)

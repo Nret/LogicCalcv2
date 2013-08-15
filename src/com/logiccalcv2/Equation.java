@@ -13,6 +13,8 @@ public class Equation {
     protected String equationOriginal;
     protected Solution solution;
 	protected StringBuilder equationWorking;
+    protected int rParenPos;
+    protected int lParenPos;
 
     /**
      * @param equation The equation to solve. Must be in the form of
@@ -57,23 +59,30 @@ public class Equation {
         solution.equation = equationOriginal;
         equationWorking = new StringBuilder(equationOriginal);
 
-        int indexR;
-        while ((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
-            int indexL = equationWorking.lastIndexOf(String.valueOf(Operand.LPAREN), indexR);
-            if (indexL == -1)
+
+        while ((rParenPos = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
+            lParenPos = equationWorking.lastIndexOf(String.valueOf(Operand.LPAREN), rParenPos);
+            if (lParenPos == -1)
                 throw new Exception("Invalid equation: Solved to " +
 									solution.steps.get(solution.steps.size() - 1).equationToString());
-			leftToRightSolve(indexL + 1, indexR - 1);//+ and - to exclude parens
+			leftToRightSolve();//+ and - to exclude parens
 			
-			equationWorking.deleteCharAt(indexL + 2);//Removes right paren.
-			equationWorking.deleteCharAt(indexL);//Removes left paren. + 1 would be the previous answer
+			equationWorking.deleteCharAt(rParenPos);//Removes right paren.
+			equationWorking.deleteCharAt(lParenPos);//Removes left paren. + 1 would be the previous answer
 			
 			//Need to subtract to keep locs in line with where they should be after deleting the parens.
 			solution.getLastStep().answerLoc--;
 		}
-		Log.v("LogicCalc", "before the final solve " + equationWorking);
-		//A final solve because there's no more parens to start from, or get in the way of anything
-		leftToRightSolve(0, equationWorking.length());
+
+        if (equationWorking.length() > 1) {
+            //No more parens
+            lParenPos = -1;
+            rParenPos = equationWorking.length();
+
+            Log.v("LogicCalc", "before the final solve " + equationWorking);
+            //A final solve because there's no more parens to start from, or get in the way of anything
+            leftToRightSolve();
+        }
 
         solution.answer = new String(equationWorking);//.toString();//Only thing left in equationWorking is the answer.
         Log.v("LogicCalc", solution.getMultiLineSteps());
@@ -82,19 +91,17 @@ public class Equation {
 		return solution;
     }
 
-	/* pos are inclusive
-	 *
-	 */
-    protected void leftToRightSolve(int startPos, int endPos) throws Exception {
-        if (startPos > endPos)
-			throw new Exception("endPos is greater than startPos");
+    protected void leftToRightSolve() throws Exception {
+        char ans = ' ';
+        if (lParenPos > rParenPos)
+			throw new Exception("lParenPos is greater than rParenPos");
 
-		int length = endPos - startPos;//Needs to be --'d after every delete
-		int pos = startPos;
-        while (length > 1) {
-			Log.v("LogicCalc", "start=" + startPos + " - end=" + endPos + " - length=" + length + " - pos=" + pos + " - equ=" + equationWorking);
+        int startPos = lParenPos + 1;
+        int pos = startPos;
+        while (rParenPos - 1 > lParenPos + 1) {
+			Log.v("LogicCalc", "start=" + startPos + " - end=" + (rParenPos - 1) + " - pos=" + pos + " - equ=" + equationWorking + " - ans=" + ans);
 
-			if (pos > startPos + length)
+			if (pos > startPos + rParenPos - 1)
 				throw new Exception("Invalid equation: " + solution.equation + " Solved to " +
 									solution.steps.get(solution.steps.size() - 1).equationToString());	
 
@@ -105,11 +112,11 @@ public class Equation {
                     solution.steps.add(new Step(equationWorking, pos,
 												pos + 1, pos));
 
-                    char ans = solvePrefix(equationWorking.substring(pos, pos + 2));
+                    ans = solvePrefix(equationWorking.substring(pos, pos + 2));
 
 					equationWorking.setCharAt(pos, ans);
 					equationWorking.deleteCharAt(pos + 1);
-					length--;
+                    rParenPos--;
 
                     pos = startPos; // reset i to begin looking at the start again
                     continue;
@@ -120,12 +127,12 @@ public class Equation {
                     solution.steps.add(new Step(equationWorking,
 												pos - 1, pos + 1, pos - 1));
 
-                    char ans = solveInfix(equationWorking.substring(pos - 1, pos + 2));
+                    ans = solveInfix(equationWorking.substring(pos - 1, pos + 2));
 
 					equationWorking.setCharAt(pos - 1, ans);
 					equationWorking.delete(pos, pos + 2); //+2 because it's exclusive
-					length--;
-					length--;
+                    rParenPos--;
+                    rParenPos--;
 
                     pos = startPos; // reset i to begin looking at the start again
                     continue;
@@ -133,6 +140,7 @@ public class Equation {
             }
             pos++;
         }
+        Log.v("LogicCalc", "start=" + startPos + " - end=" + (rParenPos - 1) + " - pos=" + pos + " - equ=" + equationWorking + " - ans=" + ans);
     }
 
     protected char solvePrefix(String equation) throws Exception {
@@ -189,7 +197,7 @@ public class Equation {
      */
     protected boolean checkPrefixEquation(String equation) throws Exception {
 		if (equation.length() != 2)
-			throw new Exception("Invalid equation length.");
+			throw new Exception("Invalid equation length: " + equation);
 
         if (Operand.isOperand(equation.charAt(0))//operand
 			&& Constant.isConstant(equation.charAt(1)))//argument
@@ -224,13 +232,28 @@ public class Equation {
         }
 
         /**
-         * Converts a string of a Constant value to its boolean equivalent.
+         * Converts a char of a Constant value to its boolean equivalent.
          *
          * @param str
          * @return true or false.
          */
         final static public boolean convert(char str) {
             return str == Constant.TRUE;
+        }
+
+        /**
+         * Converts a string of a Constant value to its boolean equivalent.
+         *
+         * @param str
+         * @return true or false.
+         */
+        final static public boolean convert(String str) throws Exception {
+            if (str.equals(String.valueOf(TRUE)))
+                return true;
+            else if (str.equals(String.valueOf(FALSE)))
+                return false;
+            else
+                throw new Exception("Not a Constant");
         }
 
         final static public boolean isConstant(char con) {

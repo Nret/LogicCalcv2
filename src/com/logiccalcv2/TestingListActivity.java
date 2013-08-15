@@ -25,10 +25,10 @@ public class TestingListActivity extends Activity {
     private void getSolutions() {
         try {
             solutions = new Equation.Solution[3];
-            solutions[0] = new Equation("(T|F)&T").solve();
-            solutions[1] = new Equation("T&(!T|F)&!F").solve();
+            solutions[0] = new Equation("(!F=F&T|T)").solve();
+            solutions[1] = new Equation("!F&(!F)|(!(T|F))").solve();
             solutions[2] = new Equation("F=(F=!T)").solve();
-            //solutions[3] = new Equation("!T(F&F)").solve();//Bad equation
+            //solutions[3] = new Equation("!F&(!F)|(!(T|F))").solve();
             //solutions[4] = new Equation("!TF&F").solve();//Bad equation
         } catch (Exception e) {
             // TODO Auto-generated catch block
