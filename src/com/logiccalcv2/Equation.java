@@ -1,15 +1,10 @@
 package com.logiccalcv2;
 
-import android.content.Context;
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.SpannedString;
-import android.text.TextUtils;
-import android.text.style.ForegroundColorSpan;
-
-import java.util.ArrayList;
-import java.util.List;
+import android.content.*;
+import android.text.*;
+import android.text.style.*;
+import android.util.*;
+import java.util.*;
 
 /**
  * @author ProfUtonium Solves boolean equations.
@@ -17,15 +12,16 @@ import java.util.List;
 public class Equation {
     protected String equationOriginal;
     protected Solution solution;
+	protected StringBuilder equationWorking;
 
     /**
      * @param equation The equation to solve. Must be in the form of
      */
     Equation(String equation) {
         this.equationOriginal = equation;
+		this.solution = null;
         // TODO if (equation does not ONLY consist of CONSTANTS and OPERATORS)
         // throw invalid equation
-        this.solution = new Solution();
     }
 
     /**
@@ -33,7 +29,7 @@ public class Equation {
      */
     Equation() {
         this.equationOriginal = null; //todo what happens when it's null? i need to put in a null check
-        this.solution = new Solution();
+		this.solution = null;
     }
 
     /**
@@ -48,78 +44,95 @@ public class Equation {
 
     /**
      * Useful to get the solution when an error was thrown.
-     *
+     * Does not null check the solution before returning it. Will be null if .solve() was not called first.
      * @return The current Solution object.
      */
     public Solution getSolution() {
         return this.solution;
     }
-
+	
     public Solution solve() throws Exception {
-        solution.steps.clear();
+		solution = new Solution();
+
         solution.equation = equationOriginal;
-        StringBuilder equationWorking = new StringBuilder(equationOriginal);
+        equationWorking = new StringBuilder(equationOriginal);
 
         int indexR;
-        while((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
+        while ((indexR = equationWorking.indexOf(String.valueOf(Operand.RPAREN))) != -1) {
             int indexL = equationWorking.lastIndexOf(String.valueOf(Operand.LPAREN), indexR);
             if (indexL == -1)
                 throw new Exception("Invalid equation: Solved to " +
-                        solution.steps.get(solution.steps.size() - 1).equationToString());
-			char ans = leftToRightSolve(equationWorking.substring(indexL + 1, indexR));//+1 because it's inclusive
-			equationWorking.delete(indexL, indexR + 1);//+1 because it's exclusive
-			equationWorking.insert(indexL, ans);//todo make sure this actually inserts to same place the ( was
+									solution.steps.get(solution.steps.size() - 1).equationToString());
+			leftToRightSolve(indexL + 1, indexR - 1);//+ and - to exclude parens
+			
+			equationWorking.deleteCharAt(indexL + 2);//Removes right paren.
+			equationWorking.deleteCharAt(indexL);//Removes left paren. + 1 would be the previous answer
+			
+			//Need to subtract to keep locs in line with where they should be after deleting the parens.
+			solution.getLastStep().answerLoc--;
 		}
-		
+		Log.v("LogicCalc", "before the final solve " + equationWorking);
 		//A final solve because there's no more parens to start from, or get in the way of anything
-		char answer = leftToRightSolve(equationWorking.toString());
+		leftToRightSolve(0, equationWorking.length());
+
+        solution.answer = new String(equationWorking);//.toString();//Only thing left in equationWorking is the answer.
+        Log.v("LogicCalc", solution.getMultiLineSteps());
+		Log.v("LogicCalc", "Answer=" + solution.answer);
 		
-        solution.answer = String.valueOf(answer);
-        return solution;
+		return solution;
     }
 
-    protected char leftToRightSolve(String equation) throws Exception {
-        StringBuilder equationWorking = new StringBuilder(equation);
-		int pos = 0;
-        while (pos < equationWorking.length()) {
+	/* pos are inclusive
+	 *
+	 */
+    protected void leftToRightSolve(int startPos, int endPos) throws Exception {
+        if (startPos > endPos)
+			throw new Exception("endPos is greater than startPos");
+
+		int length = endPos - startPos;//Needs to be --'d after every delete
+		int pos = startPos;
+        while (length > 1) {
+			Log.v("LogicCalc", "start=" + startPos + " - end=" + endPos + " - length=" + length + " - pos=" + pos + " - equ=" + equationWorking);
+
+			if (pos > startPos + length)
+				throw new Exception("Invalid equation: " + solution.equation + " Solved to " +
+									solution.steps.get(solution.steps.size() - 1).equationToString());	
+
             char op = equationWorking.charAt(pos);
 
             if (Operand.isPrefixOperand(op)) {
                 if (checkPrefixEquation(equationWorking.substring(pos, pos + 2))) {
                     solution.steps.add(new Step(equationWorking, pos,
-                            pos + 1));
+												pos + 1, pos));
 
                     char ans = solvePrefix(equationWorking.substring(pos, pos + 2));
 
 					equationWorking.setCharAt(pos, ans);
 					equationWorking.deleteCharAt(pos + 1);
+					length--;
 
-                    pos = 0; // reset i to begin looking at the start again
+                    pos = startPos; // reset i to begin looking at the start again
                     continue;
                 }
-            } else if (Operand.isInfixOperand(op)) {
+            }
+			else if (Operand.isInfixOperand(op)) {
                 if (checkInfixEquation(equationWorking.substring(pos - 1, pos + 2))) {
                     solution.steps.add(new Step(equationWorking,
-                            pos - 1, pos + 1));
+												pos - 1, pos + 1, pos - 1));
 
                     char ans = solveInfix(equationWorking.substring(pos - 1, pos + 2));
 
 					equationWorking.setCharAt(pos - 1, ans);
 					equationWorking.delete(pos, pos + 2); //+2 because it's exclusive
+					length--;
+					length--;
 
-                    pos = 0; // reset i to begin looking at the start again
+                    pos = startPos; // reset i to begin looking at the start again
                     continue;
                 }
             }
             pos++;
         }
-
-        if (equationWorking.length() != 1) {
-            throw new Exception("Invalid equation: Solved to " +
-                    solution.steps.get(solution.steps.size() - 1).equationToString());
-        }
-		
-		return equationWorking.charAt(0);
     }
 
     protected char solvePrefix(String equation) throws Exception {
@@ -141,7 +154,7 @@ public class Equation {
         boolean rhsBool = Constant.convert(rhs);
 
         char ans = Constant.convert(Operand.solveInFix(lhsBool, op, rhsBool));
-		
+
 		return ans;
     }
 
@@ -156,7 +169,7 @@ public class Equation {
     protected boolean checkInfixEquation(String equation) throws Exception {
 		if (equation.length() != 3)
 			throw new Exception("Invalid equation length.");
-			
+
         if (Constant.isConstant(equation.charAt(0))//first argument
 			&& Operand.isOperand(equation.charAt(1))//operand
 			&& Constant.isConstant(equation.charAt(2)))//second argument
@@ -177,11 +190,11 @@ public class Equation {
     protected boolean checkPrefixEquation(String equation) throws Exception {
 		if (equation.length() != 2)
 			throw new Exception("Invalid equation length.");
-			
+
         if (Operand.isOperand(equation.charAt(0))//operand
 			&& Constant.isConstant(equation.charAt(1)))//argument
         	return true;
-			
+
         return false;
     }
 
@@ -244,7 +257,7 @@ public class Equation {
          * string array.
          */
         final static public char[] OPS = {NOT, AND, OR, XOR, EQU, LPAREN,
-                RPAREN};
+			RPAREN};
         final static public char[] PREFIX_OPS = {NOT};
         final static public char[] INFIX_OPS = {AND, OR, XOR, EQU};
 
@@ -302,11 +315,14 @@ public class Equation {
             if (isInfixOperand(op)) {
                 if (Operand.isAnd(op)) {
                     return lhs & rhs;
-                } else if (Operand.isEqu(op)) {
+                }
+				else if (Operand.isEqu(op)) {
                     return lhs == rhs;
-                } else if (Operand.isOr(op)) {
+                }
+				else if (Operand.isOr(op)) {
                     return lhs | rhs;
-                } else if (Operand.isXor(op)) {
+                }
+				else if (Operand.isXor(op)) {
                     return lhs ^ rhs;
                 }
             }
@@ -314,7 +330,7 @@ public class Equation {
         }
 
         final static public boolean solvePreFix(char op, boolean rhs)
-                throws Exception {
+		throws Exception {
             if (isPrefixOperand(op)) {
                 if (Operand.isNot(op)) {
                     return !rhs;
@@ -333,17 +349,28 @@ public class Equation {
             steps = new ArrayList<Step>();
         }
 
+		/*
+		 * Returns the last step, throws "No Steps" if there are no steps.
+		 */
+		public Step getLastStep() throws Exception {
+			if (steps.size() == 0)
+				throw new Exception("No Steps");
+			return steps.get(steps.size() - 1);
+		}
+
         public String getMultiLineSteps() {
             StringBuilder builder = new StringBuilder();
 
             //append all the steps
             for (Step step : steps) {
                 builder.append(step.equationToString())
-                        .append(System.getProperty("line.separator"));
+					.append(System.getProperty("line.separator"));
             }
             //append the answer
+			if (answer == null)
+				answer = "No answer yet";
             builder.append(answer)
-                    .append(System.getProperty("line.separator"));
+				.append(System.getProperty("line.separator"));
 
             return builder.toString();
         }
@@ -357,17 +384,20 @@ public class Equation {
             int lastAnswerLoc = -1;
             SpannedString span = new SpannedString("");
 
+			Log.v("LogicCalc", "------------");
+			Log.v("LogicCalc", getMultiLineSteps());
             for (Step step : steps) {
                 Spannable tempSpan = new SpannableString(step.equationToString());
 
                 tempSpan.setSpan(new ForegroundColorSpan(context.getResources().getColor(R.color.equation)), step.startSolvingLoc, step.endSolvingLoc + 1, Spanned.SPAN_MARK_POINT);//ForegroundColorSpan(Color.BLUE)
 
-                if (lastAnswerLoc != -1)
-                    tempSpan.setSpan(new ForegroundColorSpan(context.getResources().getColor(R.color.answer)), lastAnswerLoc, lastAnswerLoc + 1, Spanned.SPAN_MARK_POINT);//ForegroundColorSpan(Color.CYAN)
+				Log.v("LogicCalc", "lastAnswerLoc="+lastAnswerLoc + " equ="+step.equation);
+                if (lastAnswerLoc != -1) 
+					tempSpan.setSpan(new ForegroundColorSpan(context.getResources().getColor(R.color.answer)), lastAnswerLoc, lastAnswerLoc + 1, Spanned.SPAN_MARK_POINT);//ForegroundColorSpan(Color.CYAN)
 
                 span = (SpannedString) TextUtils.concat(span, tempSpan, System.getProperty("line.separator"));
 
-                lastAnswerLoc = step.startSolvingLoc;
+                lastAnswerLoc = step.answerLoc;
             }
 
             Spannable tempSpan = new SpannableString(answer);
@@ -383,12 +413,14 @@ public class Equation {
         public StringBuilder equation;
         public int startSolvingLoc;
         public int endSolvingLoc; //inclusive
+		public int answerLoc;
 
-        Step(StringBuilder equation, int startSolvingLoc, int endSolvingLoc) {
+        Step(StringBuilder equation, int startSolvingLoc, int endSolvingLoc, int answerLoc) {
             //this.equation = (List<String>) ((ArrayList<String>) equation).clone();//Other wise there needs to be a deep copy of equation.
             this.equation = new StringBuilder(equation);
             this.startSolvingLoc = startSolvingLoc;
             this.endSolvingLoc = endSolvingLoc;
+			this.answerLoc = answerLoc;
         }
 
         public String equationToString() {
