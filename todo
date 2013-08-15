@@ -1,3 +1,7 @@
+Go back to using positions instead of passing copies of the string around. So saving the Steps will work properly again.
+
+What happens on multiple .solve() calls. How to fix that?
+
 Question: when solving parens in math, do parens get solved in left to right order? or do deeper nested parens get solved first?
 	1 for nested first
 It's not going to work that way. an arbitrarily length paren can be passed that isn't 2 or 3 middle characters.
