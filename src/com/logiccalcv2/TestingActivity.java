@@ -49,7 +49,8 @@ public class TestingActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_testing_activity);
-        setContentView(R.layout.horizontal_example);
+        //setContentView(R.layout.horizontal_example);
+        setContentView(R.layout.vertical_example);
         findViewIds();
         //simpleTest();
 
@@ -59,10 +60,10 @@ public class TestingActivity extends Activity {
     private void findViewIds() {
         inputText = (TextView) findViewById(R.id.inputText);
         outputText = (TextView) findViewById(R.id.outputText);
-        ((ProgressBar) findViewById(R.id.progressBar)).setVisibility(View.INVISIBLE); //Hopefully will make the progress bar disappear
     }
 
     public boolean insertOnClick(View view) {
+        Log.v("LogicCalc", "insertOnClick here: " + view.getId() + " called");
         switch (view.getId()) {
             case R.id.button_not:
                 inputTextAdd(Operand.NOT);
@@ -109,12 +110,15 @@ public class TestingActivity extends Activity {
             case R.id.button_del:
                 deleteLastChar();
                 break;
+            case R.id.button_solv:
+                setSolution();
+                break;
             default:
                 break;
         }
 
-        setEquation();
-        setSolution();
+        //setEquation();
+        //setSolution();
 
         return true;
     }
@@ -123,7 +127,16 @@ public class TestingActivity extends Activity {
      * Tell the user what the answer would be
      */
     private void setSolution() {
-        //inputEquation.solve();
+        try {
+            inputEquation.setEquation(inputText.getText().toString());
+
+            inputEquation.solve();
+
+            outputText.setText(Constant.convert(inputEquation.getSolution().answer.toString()) ? "True" : "False");
+        } catch (Exception e) {
+            outputText.setText("Bad Input");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -136,13 +149,6 @@ public class TestingActivity extends Activity {
         //intent.put
 
         return true;
-    }
-
-    /**
-     * Set the inputEquation with the text in the inputText View
-     */
-    private void setEquation() {
-        inputEquation.setEquation(inputText.getText().toString());
     }
 
     private void deleteLastChar() {
