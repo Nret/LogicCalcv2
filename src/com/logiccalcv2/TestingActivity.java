@@ -13,6 +13,7 @@ public class TestingActivity extends Activity {
     private TextView outputText;
     private boolean ver = false;
     private Equation inputEquation;
+    private TextView stepsText;
 
     protected void simpleTest() {
         Solution sol;
@@ -60,6 +61,18 @@ public class TestingActivity extends Activity {
     private void findViewIds() {
         inputText = (TextView) findViewById(R.id.inputText);
         outputText = (TextView) findViewById(R.id.outputText);
+        stepsText = (TextView) findViewById(R.id.stepsText);
+    }
+
+    public boolean outputClicked(View view) {
+        Log.v("LogicCalc", "outputClicked");
+
+        Intent listView = new Intent(this, TestingListActivity.class);
+        listView.putExtra("equation", inputText.getText());
+
+        startActivity(listView);
+
+        return true;
     }
 
     public boolean insertOnClick(View view) {
@@ -133,6 +146,7 @@ public class TestingActivity extends Activity {
             inputEquation.solve();
 
             outputText.setText(Constant.convert(inputEquation.getSolution().answer.toString()) ? "True" : "False");
+            stepsText.setText(inputEquation.getSolution().getMultiLineColorSteps(this));
         } catch (Exception e) {
             outputText.setText("Bad Input");
             e.printStackTrace();

@@ -9,11 +9,24 @@ import android.widget.*;
  */
 public class TestingListActivity extends Activity {
     Equation.Solution[] solutions = null;
+    String equation = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.list_example);
+
+        Bundle extra = getIntent().getExtras();
+
+        if (extra != null) {
+            equation = extra.getString("equation");
+        }
+
+        if (equation != null) {
+            TruthTable truthTable = new TruthTable(equation);
+        } else {
+            getSolutions();//display an example is nothing is set
+        }
 
         getSolutions();
 
